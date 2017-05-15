@@ -1,0 +1,1 @@
+add_lldb_library(lldbPluginKotlinLanguage PLUGIN KotlinLanguage.cpp)

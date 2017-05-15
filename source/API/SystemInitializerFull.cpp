@@ -57,6 +57,7 @@
 #include "Plugins/Language/CPlusPlus/CPlusPlusLanguage.h"
 #include "Plugins/Language/Go/GoLanguage.h"
 #include "Plugins/Language/Java/JavaLanguage.h"
+#include "Plugins/Language/Kotlin/KotlinLanguage.h"
 #include "Plugins/Language/OCaml/OCamlLanguage.h"
 #include "Plugins/Language/ObjC/ObjCLanguage.h"
 #include "Plugins/Language/ObjCPlusPlus/ObjCPlusPlusLanguage.h"
@@ -337,6 +338,7 @@ void SystemInitializerFull::Initialize() {
   ObjCLanguage::Initialize();
   ObjCPlusPlusLanguage::Initialize();
   OCamlLanguage::Initialize();
+  KotlinLanguage::Initialize();
 
 #if defined(_WIN32)
   ProcessWindows::Initialize();
@@ -461,6 +463,7 @@ void SystemInitializerFull::Terminate() {
   ObjCLanguage::Terminate();
   ObjCPlusPlusLanguage::Terminate();
   OCamlLanguage::Terminate();
+  KotlinLanguage::Terminate();
 
 #if defined(__APPLE__)
   DynamicLoaderDarwinKernel::Terminate();
