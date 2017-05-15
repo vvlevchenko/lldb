@@ -171,7 +171,8 @@ struct language_name_pair language_names[] = {
     // Now synonyms, in arbitrary order
     {"objc", eLanguageTypeObjC},
     {"objc++", eLanguageTypeObjC_plus_plus},
-    {"pascal", eLanguageTypePascal83}};
+    {"pascal", eLanguageTypePascal83},
+    {"kotlin", }};
 
 static uint32_t num_languages =
     sizeof(language_names) / sizeof(struct language_name_pair);
