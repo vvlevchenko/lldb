@@ -689,6 +689,8 @@ Module::LookupInfo::LookupInfo(const ConstString &name, uint32_t name_type_mask,
               Language::LanguageIsObjC(language)) &&
              ObjCLanguage::IsPossibleObjCMethodName(name_cstr))
       m_name_type_mask = eFunctionNameTypeFull;
+    else if (language == eLanguageTypeKotlin)
+      m_name_type_mask = eFunctionNameTypeFull;
     else if (Language::LanguageIsC(language)) {
       m_name_type_mask = eFunctionNameTypeFull;
     } else {
