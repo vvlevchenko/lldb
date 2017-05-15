@@ -172,7 +172,7 @@ struct language_name_pair language_names[] = {
     {"objc", eLanguageTypeObjC},
     {"objc++", eLanguageTypeObjC_plus_plus},
     {"pascal", eLanguageTypePascal83},
-    {"kotlin", }};
+    {"kotlin", eLanguageTypeKotlin}};
 
 static uint32_t num_languages =
     sizeof(language_names) / sizeof(struct language_name_pair);
