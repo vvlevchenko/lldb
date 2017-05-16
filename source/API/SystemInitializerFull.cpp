@@ -64,6 +64,7 @@
 #include "Plugins/LanguageRuntime/CPlusPlus/ItaniumABI/ItaniumABILanguageRuntime.h"
 #include "Plugins/LanguageRuntime/Go/GoLanguageRuntime.h"
 #include "Plugins/LanguageRuntime/Java/JavaLanguageRuntime.h"
+#include <Plugins/LanguageRuntime/Kotlin/KotlinLanguageRuntime.h>
 #include "Plugins/LanguageRuntime/ObjC/AppleObjCRuntime/AppleObjCRuntimeV1.h"
 #include "Plugins/LanguageRuntime/ObjC/AppleObjCRuntime/AppleObjCRuntimeV2.h"
 #include "Plugins/LanguageRuntime/RenderScript/RenderScriptRuntime/RenderScriptRuntime.h"
@@ -331,6 +332,7 @@ void SystemInitializerFull::Initialize() {
   RenderScriptRuntime::Initialize();
   GoLanguageRuntime::Initialize();
   JavaLanguageRuntime::Initialize();
+  KotlinLanguageRuntime::Initialize();
 
   CPlusPlusLanguage::Initialize();
   GoLanguage::Initialize();
@@ -456,6 +458,7 @@ void SystemInitializerFull::Terminate() {
   SystemRuntimeMacOSX::Terminate();
   RenderScriptRuntime::Terminate();
   JavaLanguageRuntime::Terminate();
+  KotlinLanguageRuntime::Terminate();
 
   CPlusPlusLanguage::Terminate();
   GoLanguage::Terminate();

@@ -1,1 +1,1 @@
-add_lldb_library(lldbPluginKotlinLanguage PLUGIN KotlinLanguage.cpp)
+add_lldb_library(lldbPluginKotlinLanguage PLUGIN KotlinLanguage.cpp KotlinFormatterFunctions.cpp)
