@@ -18,6 +18,7 @@ add_lldb_library(lldbSymbol
   FuncUnwinders.cpp
   GoASTContext.cpp
   JavaASTContext.cpp
+  KotlinASTContext.cpp
   LineEntry.cpp
   LineTable.cpp
   ObjectFile.cpp
