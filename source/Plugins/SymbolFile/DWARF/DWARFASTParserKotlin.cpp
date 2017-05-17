@@ -384,7 +384,7 @@ lldb_private::Function *DWARFASTParserKotlin::ParseFunctionFromDWARF(
             if (die.GetDWARF()->FixupAddress(func_range.GetBaseAddress())) {
                 FunctionSP func_sp(new Function(sc.comp_unit, die.GetID(), die.GetID(),
                                                 Mangled(ConstString(name), false),
-                                                nullptr, // No function types in Kotlin
+                                                nullptr, //TODO: No function types in Kotlin
                                                 func_range));
                 if (frame_base.IsValid())
                     func_sp->GetFrameBaseExpression() = frame_base;
