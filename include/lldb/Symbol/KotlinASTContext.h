@@ -1,4 +1,4 @@
-//===-- JavaASTContext.h ----------------------------------------*- C++ -*-===//
+//===-- KotlinASTContext.h --------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -329,19 +329,19 @@ public:
     // llvm casting support
     //------------------------------------------------------------------
     static bool classof(const TypeSystem *ts) {
-        return ts->getKind() == TypeSystem::eKindJava;
+        return ts->getKind() == TypeSystem::eKindKotlin;
     }
 
 private:
     uint32_t m_pointer_byte_size;
     std::unique_ptr<DWARFASTParser> m_dwarf_ast_parser_ap;
-    JavaTypeMap m_array_type_map;
-    JavaTypeMap m_base_type_map;
-    JavaTypeMap m_reference_type_map;
-    JavaTypeMap m_object_type_map;
+    KotlinTypeMap m_array_type_map;
+    KotlinTypeMap m_base_type_map;
+    KotlinTypeMap m_reference_type_map;
+    KotlinTypeMap m_object_type_map;
 
-    JavaASTContext(const JavaASTContext &) = delete;
-    const JavaASTContext &operator=(const JavaASTContext &) = delete;
+    KotlinASTContext(const KotlinASTContext &) = delete;
+    const KotlinASTContext &operator=(const KotlinASTContext &) = delete;
 };
 }
 

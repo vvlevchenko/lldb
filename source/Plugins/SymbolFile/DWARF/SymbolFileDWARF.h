@@ -77,6 +77,7 @@ public:
   friend class DWARFASTParserClang;
   friend class DWARFASTParserGo;
   friend class DWARFASTParserJava;
+  friend class DWARFASTParserKotlin;
   friend class DWARFASTParserOCaml;
 
   //------------------------------------------------------------------

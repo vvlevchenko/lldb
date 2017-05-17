@@ -26,6 +26,7 @@
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/GoASTContext.h"
 #include "lldb/Symbol/JavaASTContext.h"
+#include <lldb/Symbol/KotlinASTContext.h>
 #include "lldb/Symbol/OCamlASTContext.h"
 #include "lldb/Utility/Timer.h"
 
@@ -291,6 +292,7 @@ void SystemInitializerFull::Initialize() {
   ClangASTContext::Initialize();
   GoASTContext::Initialize();
   JavaASTContext::Initialize();
+  KotlinASTContext::Initialize();
   OCamlASTContext::Initialize();
 
   ABIMacOSX_i386::Initialize();
@@ -419,6 +421,7 @@ void SystemInitializerFull::Terminate() {
   ClangASTContext::Terminate();
   GoASTContext::Terminate();
   JavaASTContext::Terminate();
+  KotlinASTContext::Terminate();
   OCamlASTContext::Terminate();
 
   ABIMacOSX_i386::Terminate();

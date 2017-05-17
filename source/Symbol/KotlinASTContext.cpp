@@ -45,6 +45,7 @@ public:
     virtual void Dump(Stream *s) = 0;
 
     virtual bool IsCompleteType() = 0;
+    LLVMCastKind getKind() const { return m_kind; }
 private:
     LLVMCastKind m_kind;
 };
