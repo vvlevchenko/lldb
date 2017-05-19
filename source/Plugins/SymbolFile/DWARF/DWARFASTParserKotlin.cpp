@@ -381,10 +381,19 @@ lldb_private::Function *DWARFASTParserKotlin::ParseFunctionFromDWARF(
                         sc.comp_unit->GetSupportFiles().GetFileSpecAtIndex(decl_file),
                         decl_line, decl_column));
 
+            /**
+             * TODO: Using magled or Mangled(name, false) here should be desided later
+             * for now I'd like to stay close to c89.
+             */
+            SymbolFileDWARF *dwarf = die.GetDWARF();
+            Type *func_type = dwarf->GetDIEToType().lookup(die.GetDIE());
+
+            assert(func_type == NULL || func_type != DIE_IS_BEING_PARSED);
+
             if (die.GetDWARF()->FixupAddress(func_range.GetBaseAddress())) {
                 FunctionSP func_sp(new Function(sc.comp_unit, die.GetID(), die.GetID(),
-                                                Mangled(ConstString(name), false),
-                                                nullptr, //TODO: No function types in Kotlin
+                                                mangled,
+                                                func_type,
                                                 func_range));
                 if (frame_base.IsValid())
                     func_sp->GetFrameBaseExpression() = frame_base;
