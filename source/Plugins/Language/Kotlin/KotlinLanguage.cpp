@@ -10,41 +10,52 @@ using namespace lldb;
 using namespace lldb_private;
 
 void
-KotlinLanguage::Initialize()
-{
+KotlinLanguage::Initialize() {
     PluginManager::RegisterPlugin(GetPluginNameStatic(), "Kotlin Language", CreateInstance);
 }
 
 void
-KotlinLanguage::Terminate()
-{
+KotlinLanguage::Terminate() {
     PluginManager::UnregisterPlugin(CreateInstance);
 }
 
 ConstString
-KotlinLanguage::GetPluginNameStatic()
-{
+KotlinLanguage::GetPluginNameStatic() {
     ConstString g_name("Kotlin");
     return g_name;
 }
 
 ConstString
-KotlinLanguage::GetPluginName()
-{
+KotlinLanguage::GetPluginName() {
     return GetPluginNameStatic();
 }
 
 uint32_t
-KotlinLanguage::GetPluginVersion()
-{
+KotlinLanguage::GetPluginVersion() {
     return 1;
 }
 
 Language *
-KotlinLanguage::CreateInstance(LanguageType language)
-{
+KotlinLanguage::CreateInstance(LanguageType language) {
     if (language == eLanguageTypeKotlin)
         return new KotlinLanguage();
     else
         return nullptr;
+}
+
+std::unique_ptr<Language::TypeScavenger>
+KotlinLanguage::GetTypeScavenger() {
+    class KotlinTypeScavenger : public Language::ImageListTypeScavenger {
+    public:
+        virtual CompilerType AdjustForInclusion(CompilerType &candidate) override {
+            LanguageType lang_type(candidate.GetMinimumLanguage());
+            if (lang_type != eLanguageTypeKotlin)
+                return CompilerType();
+            if (candidate.IsTypedefType())
+                return candidate.GetTypedefedType();
+            return candidate;
+        }
+    };
+
+    return std::unique_ptr<TypeScavenger>(new KotlinTypeScavenger());
 }

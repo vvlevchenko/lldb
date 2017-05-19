@@ -36,6 +36,8 @@ public:
 
     uint32_t GetPluginVersion() override;
 
+    std::unique_ptr<Language::TypeScavenger> GetTypeScavenger() override;
+
     static ConstString GetPluginNameStatic();
 
     static Language *CreateInstance(lldb::LanguageType language);
