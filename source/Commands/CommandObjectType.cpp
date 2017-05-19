@@ -2928,10 +2928,10 @@ public:
       // FIXME: hardcoding languages is not good
       languages.push_back(Language::FindPlugin(eLanguageTypeObjC));
       languages.push_back(Language::FindPlugin(eLanguageTypeC_plus_plus));
+      languages.push_back(Language::FindPlugin(eLanguageTypeKotlin));
     } else {
       languages.push_back(Language::FindPlugin(m_command_options.m_language));
     }
-
     // This is not the most efficient way to do this, but we support very few
     // languages
     // so the cost of the sort is going to be dwarfed by the actual lookup
