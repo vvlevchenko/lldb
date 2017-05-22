@@ -209,6 +209,9 @@ lldb::TypeSP DWARFASTParserKotlin::ParseClassTypeFromDIE(const DWARFDIE &die,
                 case DW_AT_linkage_name:
                     linkage_name.SetCString(form_value.AsCString());
                     break;
+                case DW_AT_decl_file:
+                case DW_AT_decl_line:
+                    break;
                 default:
                     assert(false && "Unsupported attribute for DW_TAG_class_type");
             }
@@ -304,6 +307,8 @@ lldb::TypeSP DWARFASTParserKotlin::ParseTypeFromDWARF(
             type_sp = ParseArrayTypeFromDIE(die);
             break;
         }
+
+        case DW_TAG_structure_type:
         case DW_TAG_class_type: {
             bool is_new_type = false;
             type_sp = ParseClassTypeFromDIE(die, is_new_type);
@@ -410,6 +415,7 @@ bool DWARFASTParserKotlin::CompleteTypeFromDWARF(
         const DWARFDIE &die, lldb_private::Type *type,
         lldb_private::CompilerType &Kotlin_type) {
     switch (die.Tag()) {
+        case DW_TAG_structure_type:
         case DW_TAG_class_type: {
             if (die.GetAttributeValueAsUnsigned(DW_AT_declaration, 0) == 0) {
                 if (die.HasChildren())
