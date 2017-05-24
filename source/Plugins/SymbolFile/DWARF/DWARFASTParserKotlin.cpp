@@ -255,7 +255,7 @@ lldb::TypeSP DWARFASTParserKotlin::ParseClassTypeFromDIE(const DWARFDIE &die,
 
     is_new_type = true;
     TypeSP type_sp(new Type(die.GetID(), dwarf, name,
-                            -1, // byte size isn't specified
+                            byte_size,
                             nullptr, LLDB_INVALID_UID, Type::eEncodingIsUID,
                             &decl, compiler_type, Type::eResolveStateForward));
 
@@ -463,10 +463,14 @@ void DWARFASTParserKotlin::ParseChildMembers(const DWARFDIE &parent_die,
                                 else
                                     member_byte_offset = form_value.Unsigned();
                                 break;
+
                             case DW_AT_artificial:
                                 static_cast<void>(form_value.Boolean());
                                 break;
                             case DW_AT_accessibility:
+                            case DW_AT_decl_line:
+                            case DW_AT_decl_file:
+                            case DW_AT_decl_column:
                                 // TODO: Handle when needed
                                 break;
                             default:

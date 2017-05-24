@@ -72,21 +72,21 @@ public:
     ConstString GetName() override {
         switch (m_type_kind) {
             case eTypeByte:
-                return ConstString("byte");
+                return ConstString("kotlin.Byte");
             case eTypeShort:
-                return ConstString("short");
+                return ConstString("kotlin.Short");
             case eTypeInt:
-                return ConstString("int");
+                return ConstString("kotlin.Int");
             case eTypeLong:
-                return ConstString("long");
+                return ConstString("kotlin.Long");
             case eTypeFloat:
-                return ConstString("float");
+                return ConstString("kotlin.Float");
             case eTypeDouble:
-                return ConstString("double");
+                return ConstString("kotlin.Double");
             case eTypeBoolean:
-                return ConstString("boolean");
+                return ConstString("kotlin.Boolean");
             case eTypeChar:
-                return ConstString("char");
+                return ConstString("kotlin.Char");
         }
         return ConstString();
     }
@@ -605,7 +605,7 @@ bool KotlinASTContext::IsBeingDefined(lldb::opaque_compiler_type_t type) {
 }
 
 bool KotlinASTContext::IsDefined(lldb::opaque_compiler_type_t type) {
-    return type != nullptr;
+    return IsCompleteType(type);
 }
 
 bool KotlinASTContext::GetCompleteType(lldb::opaque_compiler_type_t type) {
