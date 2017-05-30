@@ -343,6 +343,19 @@ private:
     KotlinASTContext(const KotlinASTContext &) = delete;
     const KotlinASTContext &operator=(const KotlinASTContext &) = delete;
 };
+
+class KotlinASTContextForExpression: public KotlinASTContext {
+public:
+    explicit KotlinASTContextForExpression(lldb::TargetSP target);
+    UserExpression *
+    GetUserExpression(llvm::StringRef expr, llvm::StringRef prefix,
+                      lldb::LanguageType language,
+                      Expression::ResultType desired_type,
+                      const EvaluateExpressionOptions &options) override;
+
+private:
+    lldb::TargetWP m_target_wp;
+};
 }
 
 

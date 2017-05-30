@@ -21,6 +21,7 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/Stream.h"
 
+#include "Plugins/ExpressionParser/Kotlin/KotlinUserExpression.h"
 #include "Plugins/SymbolFile/DWARF/DWARFASTParserKotlin.h"
 
 
@@ -346,7 +347,7 @@ lldb::TypeSystemSP KotlinASTContext::CreateInstance(lldb::LanguageType language,
         if (module)
             return std::make_shared<KotlinASTContext>(module->GetArchitecture());
         if (target)
-            return std::make_shared<KotlinASTContext>(target->GetArchitecture());
+            return std::make_shared<KotlinASTContextForExpression>(target->shared_from_this());
         assert(false && "Either a module or a target has to be specifed to create "
                 "a KotlinASTContext");
     }
@@ -1324,4 +1325,18 @@ ConstString KotlinASTContext::GetLinkageName(const CompilerType &type) {
             static_cast<KotlinType *>(type.GetOpaqueQualType())))
         return obj->GetLinkageName();
     return ConstString();
+}
+
+KotlinASTContextForExpression::KotlinASTContextForExpression(TargetSP target)
+        :KotlinASTContext(target->GetArchitecture()), m_target_wp(target) {}
+
+UserExpression *KotlinASTContextForExpression::GetUserExpression(
+        llvm::StringRef expr, llvm::StringRef prefix, lldb::LanguageType language,
+        Expression::ResultType desired_type,
+        const EvaluateExpressionOptions &options) {
+    TargetSP target = m_target_wp.lock();
+    if (target)
+        return new KotlinUserExpression(*target, expr, prefix, language, desired_type,
+                                       options);
+    return nullptr;
 }

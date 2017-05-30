@@ -33,7 +33,7 @@ public:
   //----------------------------------------------------------------------
   // See TypeSystem.h for how to add subclasses to this.
   //----------------------------------------------------------------------
-  enum LLVMCastKind { eKindClang, eKindSwift, eKindGo, kNumKinds };
+  enum LLVMCastKind { eKindClang, eKindSwift, eKindGo, eKindKotlin, kNumKinds };
 
   LLVMCastKind getKind() const { return m_kind; }
 
@@ -225,7 +225,7 @@ public:
   //----------------------------------------------------------------------
   // See TypeSystem.h for how to add subclasses to this.
   //----------------------------------------------------------------------
-  enum LLVMCastKind { eKindClang, eKindSwift, eKindGo, kNumKinds };
+  enum LLVMCastKind { eKindClang, eKindSwift, eKindGo, eKindKotlin, kNumKinds };
 
   LLVMCastKind getKind() const { return m_kind; }
 
