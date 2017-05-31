@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <regex>
 
 // Other libraries and framework includes
 #include "llvm/ADT/StringMap.h"
@@ -460,8 +461,8 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinAS
                 return m_frame->TrackGlobalVariable(var_sp, m_use_dynamic);
             else {
                 SymbolContextList sc_list;
-                const auto name = llvm::StringRef("kfun:") + e->GetName().m_value;
-                target->GetImages().FindFunctions(ConstString(name.str().c_str()), eFunctionNameTypeAuto, false, false, false, sc_list);
+                std::string unescaped = std::regex_replace(e->GetName().m_value.str(), std::regex("\\\\"), "");
+                target->GetImages().FindFunctions(ConstString(unescaped.c_str()), eFunctionNameTypeAuto, false, false, false, sc_list);
                 if (sc_list.GetSize() != 0) {
                     auto address = sc_list[0].function->GetAddressRange().GetBaseAddress().GetLoadAddress(target.get());
                     return ValueObject::CreateValueObjectFromAddress(llvm::StringRef(),

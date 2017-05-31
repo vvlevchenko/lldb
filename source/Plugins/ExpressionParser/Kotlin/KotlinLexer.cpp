@@ -56,9 +56,7 @@ const KotlinLexer::Token &KotlinLexer::Lex() {
     bool newline = SkipWhitespace();
     const char *start = m_src;
     m_last_token.m_type = InternalLex(newline);
-    std::string str(start, m_src - start);
-    str = std::regex_replace(str, std::regex("\\\\"), "");
-    m_last_token.m_value = llvm::StringRef(str.c_str());
+    m_last_token.m_value = llvm::StringRef(start, m_src - start);
     return m_last_token;
 }
 
