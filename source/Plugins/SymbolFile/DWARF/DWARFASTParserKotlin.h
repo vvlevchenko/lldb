@@ -73,5 +73,7 @@ private:
     lldb::TypeSP ParseReferenceTypeFromDIE(const DWARFDIE &die);
 
     lldb::TypeSP ParseClassTypeFromDIE(const DWARFDIE &die, bool &is_new_type);
+
+    lldb::TypeSP ParseSubprogramTypeFromDIE(const DWARFDIE &die);
 };
 #endif //SymbolFileDWARF_DWARFASTParserKotlin_h_

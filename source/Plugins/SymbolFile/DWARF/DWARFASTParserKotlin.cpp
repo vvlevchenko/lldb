@@ -7,6 +7,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <lldb/Utility/Log.h>
+#include <lldb/Utility/Logging.h>
 #include "DWARFASTParserKotlin.h"
 #include "DWARFAttribute.h"
 #include "DWARFCompileUnit.h"
@@ -320,6 +322,10 @@ lldb::TypeSP DWARFASTParserKotlin::ParseTypeFromDWARF(
             type_sp = ParseReferenceTypeFromDIE(die);
             break;
         }
+        case DW_TAG_subprogram: {
+            type_sp = ParseSubprogramTypeFromDIE(die);
+            break;
+        }
     }
 
     if (!type_sp)
@@ -525,4 +531,25 @@ void DWARFASTParserKotlin::ParseChildMembers(const DWARFDIE &parent_die,
                 break;
         }
     }
+}
+
+lldb::TypeSP DWARFASTParserKotlin::ParseSubprogramTypeFromDIE(const DWARFDIE &die) {
+    Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS |
+                                                    LIBLLDB_LOG_STEP));
+
+    DWARFAttributes attributes;
+    size_t num_attributes = die.GetAttributes(attributes);
+    for (size_t i = 0; i < num_attributes; ++i) {
+        DWARFFormValue form_value;
+        if (attributes.ExtractFormValueAtIndex(i, form_value)) {
+            auto v = attributes.AttributeAtIndex(i);
+            switch(v) {
+                default:
+                    if (log)
+                        log->Printf("unsupported attribute: %x", v);
+                    break;
+            }
+        }
+    }
+    return lldb::TypeSP();
 }
