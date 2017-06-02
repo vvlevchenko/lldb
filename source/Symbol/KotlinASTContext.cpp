@@ -36,6 +36,7 @@ public:
         eKindObject,
         eKindReference,
         eKindArray,
+        eKindFuntionType,
         kNumKinds
     };
     explicit KotlinType(LLVMCastKind kind): m_kind(kind){}
@@ -327,6 +328,24 @@ private:
     lldb::addr_t m_data_offset;
 };
 
+class KotlinFunctionType: public KotlinDynamicType {
+public:
+    KotlinFunctionType(const CompilerType& return_type):KotlinDynamicType(eKindFuntionType, ConstString()),
+                             m_return_type(return_type){}
+    void AddParameter(const CompilerType& type) { m_paramters.push_back(type);}
+    CompilerType GetParameter(unsigned index) const {return m_paramters[index];}
+    CompilerType GetReturnType() const { return m_return_type; }
+    void Dump(Stream *s) override {}
+    ConstString GetName() override { return ConstString();}
+    bool IsCompleteType() override { return true; }
+
+    static bool classof(const KotlinASTContext::KotlinType *jt) {
+        return jt->getKind() == KotlinASTContext::KotlinType::eKindFuntionType;
+    }
+private:
+    CompilerType m_return_type;
+    std::vector<CompilerType> m_paramters;
+};
 } // end of anonymous namespace
 
 
@@ -1291,6 +1310,16 @@ void KotlinASTContext::SetDynamicTypeId(const CompilerType &type,
                    "KotlinASTContext::SetDynamicTypeId called with not a KotlinObjectType");
     obj->SetDynamicTypeId(type_id);
 }
+
+
+CompilerType KotlinASTContext::CreateFunctionType(const CompilerType& return_type, const CompilerType* parameters, unsigned num_parameters, bool& is_variadic) {
+    auto func = new KotlinFunctionType(return_type);
+    for (unsigned i = 0; i < num_parameters; ++i) {
+        func->AddParameter(parameters[i]);
+    }
+    return CompilerType(this, func);
+}
+
 
 uint64_t KotlinASTContext::CalculateDynamicTypeId(ExecutionContext *exe_ctx,
                                                 const CompilerType &type,

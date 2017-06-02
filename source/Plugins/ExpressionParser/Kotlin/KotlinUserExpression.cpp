@@ -660,10 +660,10 @@ CompilerType KotlinUserExpression::KotlinInterpreter::EvaluateType(const KotlinA
 ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitCallExpr(
         const lldb_private::KotlinASTCallExpr *e) {
     ValueObjectSP x = EvaluateExpr(e->GetFun());
-    if (x || e->NumArgs() != 1) {
+    /* if (x || e->NumArgs() != 1) {
         m_error.SetErrorStringWithFormat("Code execution not supported");
         return nullptr;
-    }
+    }*/
     m_error.Clear();
     CompilerType type = EvaluateType(e->GetFun());
     if (!type) {

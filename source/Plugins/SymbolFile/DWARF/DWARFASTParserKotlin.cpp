@@ -533,23 +533,67 @@ void DWARFASTParserKotlin::ParseChildMembers(const DWARFDIE &parent_die,
     }
 }
 
+
 lldb::TypeSP DWARFASTParserKotlin::ParseSubprogramTypeFromDIE(const DWARFDIE &die) {
     Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS |
                                                     LIBLLDB_LOG_STEP));
 
     DWARFAttributes attributes;
+    ConstString name;
+    Declaration decl;
+    ConstString linkage_name;
+    SymbolContext sc(die.GetLLDBCompileUnit());
     size_t num_attributes = die.GetAttributes(attributes);
+    DWARFFormValue type_die_form;
     for (size_t i = 0; i < num_attributes; ++i) {
         DWARFFormValue form_value;
         if (attributes.ExtractFormValueAtIndex(i, form_value)) {
             auto v = attributes.AttributeAtIndex(i);
             switch(v) {
+                case DW_AT_linkage_name:
+                    linkage_name.SetCString(form_value.AsCString());
+                    break;
+                case DW_AT_name:
+                    name.SetCString(form_value.AsCString());
+                    break;
+                case DW_AT_type:
+                    type_die_form = form_value;
+                    break;
+                case DW_AT_decl_file:
+                    decl.SetFile(sc.comp_unit->GetSupportFiles().GetFileSpecAtIndex(form_value.Unsigned()));
+                    break;
+                case DW_AT_decl_line:
+                    decl.SetLine(form_value.Unsigned());
+                    break;
+                case DW_AT_low_pc:
+                case DW_AT_high_pc:
+                case DW_AT_frame_base:
+                case DW_AT_external:
+                    break;
                 default:
-                    if (log)
-                        log->Printf("unsupported attribute: %x", v);
+                    assert(false && "Unhandled attribute for DW_AT");
                     break;
             }
         }
     }
-    return lldb::TypeSP();
+    SymbolFileDWARF *dwarf = die.GetDWARF();
+
+    CompilerType return_type;
+    Type *func_type = NULL;
+
+    if (type_die_form.IsValid())
+        func_type = dwarf->ResolveTypeUID(DIERef(type_die_form));
+    if (func_type)
+        return_type = func_type->GetFullCompilerType();
+    else
+        return_type = m_ast.GetBasicTypeFromAST(eBasicTypeVoid);
+
+    bool is_variadic = false;
+    assert(!die.HasChildren());
+    CompilerType compiler_type = m_ast.CreateFunctionType(return_type, (CompilerType *)NULL, 0, is_variadic);
+    return TypeSP(new Type(die.GetID(), dwarf, name,
+                            0,
+                            nullptr, LLDB_INVALID_UID, Type::eEncodingIsUID,
+                            &decl, compiler_type, Type::eResolveStateForward));
 }
+

@@ -312,6 +312,7 @@ public:
 
     void SetDynamicTypeId(const CompilerType &type,
                           const DWARFExpression &type_id);
+    CompilerType CreateFunctionType(const CompilerType& return_type, const CompilerType* parameters, unsigned num_parameters, bool& is_variadic);
 
     static uint64_t CalculateDynamicTypeId(ExecutionContext *exe_ctx,
                                            const CompilerType &type,
