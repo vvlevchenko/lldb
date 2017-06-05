@@ -59,6 +59,11 @@
 using namespace lldb_private;
 using namespace lldb;
 
+static std::string unescape(const std::string &string_name) {
+    std::string unescaped = regex_replace(string_name, std::regex("\\\\"), "");
+    return unescaped;
+}
+
 class KotlinUserExpression::KotlinInterpreter {
 public:
     KotlinInterpreter(ExecutionContext &exe_ctx, const char *expr)
@@ -377,9 +382,10 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitParenExpr(
 
 ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinASTIdent *e) {
     ValueObjectSP val;
+    const std::string &string_name = e->GetName().m_value.str();
     if (m_frame) {
         VariableSP var_sp;
-        std::string varname = e->GetName().m_value.str();
+        std::string varname = string_name;
         if (varname.size() > 1 && varname[0] == '$') {
             RegisterContextSP reg_ctx_sp = m_frame->GetRegisterContext();
             const RegisterInfo *reg =
@@ -461,7 +467,7 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinAS
                 return m_frame->TrackGlobalVariable(var_sp, m_use_dynamic);
             else {
                 SymbolContextList sc_list;
-                std::string unescaped = std::regex_replace(e->GetName().m_value.str(), std::regex("\\\\"), "");
+                std::string unescaped = unescape(string_name);
                 target->GetImages().FindFunctions(ConstString(unescaped.c_str()), eFunctionNameTypeAuto, false, false, false, sc_list);
                 if (sc_list.GetSize() != 0) {
                     auto address = sc_list[0].function->GetAddressRange().GetBaseAddress().GetLoadAddress(target.get());
@@ -474,7 +480,7 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinAS
     }
     if (!val)
         m_error.SetErrorStringWithFormat("Unknown variable %s",
-                                         e->GetName().m_value.str().c_str());
+                                         string_name.c_str());
     return val;
 }
 
@@ -611,7 +617,7 @@ CompilerType KotlinUserExpression::KotlinInterpreter::EvaluateType(const KotlinA
     TargetSP target = m_exe_ctx.GetTargetSP();
     if (auto *id = llvm::dyn_cast<KotlinASTIdent>(e)) {
         CompilerType result =
-                LookupType(target, ConstString(id->GetName().m_value));
+                LookupType(target, ConstString(unescape(id->GetName().m_value.str())));
         if (result.IsValid())
             return result;
         std::string fullname = (m_package + "." + id->GetName().m_value).str();
