@@ -23,6 +23,7 @@
 // Other libraries and framework includes
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include <llvm/IR/IRBuilder.h>
 
 // Project includes
 #include "KotlinUserExpression.h"
@@ -66,8 +67,8 @@ static std::string unescape(const std::string &string_name) {
 
 class KotlinUserExpression::KotlinInterpreter {
 public:
-    KotlinInterpreter(ExecutionContext &exe_ctx, const char *expr)
-            : m_exe_ctx(exe_ctx), m_frame(exe_ctx.GetFrameSP()), m_parser(expr) {
+    KotlinInterpreter(ExecutionContext &exe_ctx, const char *expr, Log *log)
+            : m_exe_ctx(exe_ctx), m_frame(exe_ctx.GetFrameSP()), m_parser(expr), m_log(log) {
         if (m_frame) {
             const SymbolContext &ctx =
                     m_frame->GetSymbolContext(eSymbolContextFunction);
@@ -78,6 +79,13 @@ public:
                     m_package = llvm::StringRef(fname.AsCString(), dot);
             }
         }
+        m_module.reset(new llvm::Module(llvm::StringRef(), m_ctx));
+        m_builder.reset(new llvm::IRBuilder<>(m_ctx));
+    }
+
+    ~KotlinInterpreter() {
+        m_module.reset();
+        m_builder.reset();
     }
 
     void set_use_dynamic(DynamicValueType use_dynamic) {
@@ -85,92 +93,79 @@ public:
     }
 
     bool Parse();
-    lldb::ValueObjectSP Evaluate(ExecutionContext &exe_ctx);
-    lldb::ValueObjectSP EvaluateStatement(const KotlinASTStmt *s);
-    lldb::ValueObjectSP EvaluateExpr(const KotlinASTExpr *e);
+    llvm::Value* Evaluate(ExecutionContext &exe_ctx);
+    llvm::Value* EvaluateStatement(const KotlinASTStmt *s);
+    llvm::Value* EvaluateExpr(const KotlinASTExpr *e);
 
-    ValueObjectSP VisitBadExpr(const KotlinASTBadExpr *e) {
+    llvm::Value* VisitBadExpr(const KotlinASTBadExpr *e) {
         m_parser.GetError(m_error);
         return nullptr;
     }
 
-    ValueObjectSP VisitParenExpr(const KotlinASTParenExpr *e);
-    ValueObjectSP VisitIdent(const KotlinASTIdent *e);
-    ValueObjectSP VisitStarExpr(const KotlinASTStarExpr *e);
-    ValueObjectSP VisitSelectorExpr(const KotlinASTSelectorExpr *e);
-    ValueObjectSP VisitBasicLit(const KotlinASTBasicLit *e);
-    ValueObjectSP VisitIndexExpr(const KotlinASTIndexExpr *e);
-    ValueObjectSP VisitUnaryExpr(const KotlinASTUnaryExpr *e);
-    ValueObjectSP VisitCallExpr(const KotlinASTCallExpr *e);
+    llvm::Value* VisitParenExpr(const KotlinASTParenExpr *e);
+    llvm::Value* VisitIdent(const KotlinASTIdent *e);
+    llvm::Value* VisitStarExpr(const KotlinASTStarExpr *e);
+    llvm::Value* VisitSelectorExpr(const KotlinASTSelectorExpr *e);
+    llvm::Value* VisitBasicLit(const KotlinASTBasicLit *e);
+    llvm::Value* VisitIndexExpr(const KotlinASTIndexExpr *e);
+    llvm::Value* VisitUnaryExpr(const KotlinASTUnaryExpr *e);
+    llvm::Value* VisitCallExpr(const KotlinASTCallExpr *e);
 
-    ValueObjectSP VisitTypeAssertExpr(const KotlinASTTypeAssertExpr *e) {
+    llvm::Value* VisitTypeAssertExpr(const KotlinASTTypeAssertExpr *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitBinaryExpr(const KotlinASTBinaryExpr *e) {
+    llvm::Value* VisitBinaryExpr(const KotlinASTBinaryExpr *e) {
         Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
         log->Printf("(%d %s %s)", e->GetOp(), e->GetX()->GetKindName(), e->GetY()->GetKindName());
 
-        auto vx = e->GetX()->Visit<ValueObjectSP>(this);
-        auto vy = e->GetY()->Visit<ValueObjectSP>(this);
+        auto vx = e->GetX()->Visit<llvm::Value *>(this);
+        auto vy = e->GetY()->Visit<llvm::Value *>(this);
 
-        vx->LogValueObject(log);
-        vy->LogValueObject(log);
-
-        switch (e->GetOp()) {
-            case KotlinASTNode::TokenType::OP_PLUS:
-
-                std::string expr;
-                expr += vx->GetName().GetCString();
-                expr += "+";
-                expr += vy->GetName().GetCString();
-
-                return ValueObject::CreateValueObjectFromExpression(llvm::StringRef(), expr, m_exe_ctx);
-        }
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitArrayType(const KotlinASTArrayType *e) {
+    llvm::Value* VisitArrayType(const KotlinASTArrayType *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitChanType(const KotlinASTChanType *e) {
+    llvm::Value* VisitChanType(const KotlinASTChanType *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitCompositeLit(const KotlinASTCompositeLit *e) {
+    llvm::Value* VisitCompositeLit(const KotlinASTCompositeLit *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitEllipsis(const KotlinASTEllipsis *e) {
+    llvm::Value* VisitEllipsis(const KotlinASTEllipsis *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitFuncType(const KotlinASTFuncType *e) {
+    llvm::Value* VisitFuncType(const KotlinASTFuncType *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitFuncLit(const KotlinASTFuncLit *e) {
+    llvm::Value* VisitFuncLit(const KotlinASTFuncLit *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitInterfaceType(const KotlinASTInterfaceType *e) {
+    llvm::Value* VisitInterfaceType(const KotlinASTInterfaceType *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitKeyValueExpr(const KotlinASTKeyValueExpr *e) {
+    llvm::Value* VisitKeyValueExpr(const KotlinASTKeyValueExpr *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitMapType(const KotlinASTMapType *e) {
+    llvm::Value* VisitMapType(const KotlinASTMapType *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitSliceExpr(const KotlinASTSliceExpr *e) {
+    llvm::Value* VisitSliceExpr(const KotlinASTSliceExpr *e) {
         return NotImplemented(e);
     }
 
-    ValueObjectSP VisitStructType(const KotlinASTStructType *e) {
+    llvm::Value* VisitStructType(const KotlinASTStructType *e) {
         return NotImplemented(e);
     }
 
@@ -179,7 +174,7 @@ public:
     Status &error() { return m_error; }
 
 private:
-    std::nullptr_t NotImplemented(const KotlinASTExpr *e) {
+    llvm::Value *NotImplemented(const KotlinASTExpr *e) {
         m_error.SetErrorStringWithFormat("%s node not implemented",
                                          e->GetKindName());
         return nullptr;
@@ -192,6 +187,10 @@ private:
     Status m_error;
     llvm::StringRef m_package;
     std::vector<std::unique_ptr<KotlinASTStmt>> m_statements;
+    std::unique_ptr<llvm::Module> m_module;
+    std::unique_ptr<llvm::IRBuilder<>> m_builder;
+    llvm::LLVMContext m_ctx;
+    Log* m_log;
 };
 
 static VariableSP FindGlobalVariable(TargetSP target, llvm::Twine name) {
@@ -236,8 +235,16 @@ bool KotlinUserExpression::Parse(DiagnosticManager &diagnostic_manager,
                              lldb_private::ExecutionPolicy execution_policy,
                              bool keep_result_in_memory,
                              bool generate_debug_info) {
+    m_log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS);
     InstallContext(exe_ctx);
-    m_interpreter.reset(new KotlinInterpreter(exe_ctx, GetUserText()));
+    Status err;
+    ScanContext(exe_ctx, err);
+
+    if (!err.Success()) {
+        diagnostic_manager.PutString(eDiagnosticSeverityWarning, err.AsCString());
+    }
+    m_materializer_ap.reset(new Materializer());
+    m_interpreter.reset(new KotlinInterpreter(exe_ctx, GetUserText(), m_log));
     if (m_interpreter->Parse())
         return true;
     const char *error_cstr = m_interpreter->error().AsCString();
@@ -255,9 +262,6 @@ KotlinUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
                             const EvaluateExpressionOptions &options,
                             lldb::UserExpressionSP &shared_ptr_to_me,
                             lldb::ExpressionVariableSP &result) {
-    Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS |
-                                                    LIBLLDB_LOG_STEP));
-
     lldb_private::ExecutionPolicy execution_policy = options.GetExecutionPolicy();
     lldb::ExpressionResults execution_results = lldb::eExpressionSetupError;
 
@@ -267,8 +271,8 @@ KotlinUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
     if (target == nullptr || process == nullptr ||
         process->GetState() != lldb::eStateStopped) {
         if (execution_policy == eExecutionPolicyAlways) {
-            if (log)
-                log->Printf("== [KotlinUserExpression::Evaluate] Expression may not run, "
+            if (m_log)
+                m_log->Printf("== [KotlinUserExpression::Evaluate] Expression may not run, "
                                     "but is not constant ==");
 
             diagnostic_manager.PutString(eDiagnosticSeverityError,
@@ -279,7 +283,7 @@ KotlinUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
     }
 
     m_interpreter->set_use_dynamic(options.GetUseDynamic());
-    ValueObjectSP result_val_sp = m_interpreter->Evaluate(exe_ctx);
+    auto result_val_sp = m_interpreter->Evaluate(exe_ctx);
     Status err = m_interpreter->error();
     m_interpreter.reset();
 
@@ -292,8 +296,9 @@ KotlinUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
                                          "expression can't be interpreted or run");
         return lldb::eExpressionDiscarded;
     }
+#if 0
     result.reset(new ExpressionVariable(ExpressionVariable::eKindKotlin));
-    result->m_live_sp = result->m_frozen_sp = result_val_sp;
+    //result->m_live_sp = result->m_frozen_sp = result_val_sp;
     result->m_flags |= ExpressionVariable::EVIsProgramReference;
     PersistentExpressionState *pv =
             target->GetPersistentExpressionStateForLanguage(eLanguageTypeKotlin);
@@ -301,15 +306,16 @@ KotlinUserExpression::DoExecute(DiagnosticManager &diagnostic_manager,
         result->SetName(pv->GetNextPersistentVariableName());
         pv->AddVariable(result);
     }
+#else
+    result.reset();
+#endif
     return lldb::eExpressionCompleted;
 }
 
 void KotlinUserExpression::ScanContext(ExecutionContext &exe_ctx,
                  lldb_private::Status &err) {
-    Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
-
-    if (log)
-        log->Printf("ClangUserExpression::ScanContext()");
+    if (m_log)
+        m_log->Printf("ClangUserExpression::ScanContext()");
 
 }
 
@@ -328,25 +334,42 @@ bool KotlinUserExpression::KotlinInterpreter::Parse() {
     }
     if (m_parser.Failed() || !m_parser.AtEOF())
         m_parser.GetError(m_error);
-
     return m_error.Success();
 }
 
-ValueObjectSP
+llvm::Value*
 KotlinUserExpression::KotlinInterpreter::Evaluate(ExecutionContext &exe_ctx) {
+    llvm::Type *return_type = llvm::Type::getPrimitiveType(m_ctx, llvm::Type::TypeID::VoidTyID);
+    llvm::FunctionType* generated_function_type = llvm::FunctionType::get(return_type, false);
+    llvm::Function *generated_function = llvm::Function::Create(
+            generated_function_type,
+            llvm::GlobalValue::LinkageTypes::AvailableExternallyLinkage,
+            "",
+            m_module.get());
+    llvm::BasicBlock *bb = llvm::BasicBlock::Create(m_ctx, "", generated_function);
+    m_builder->SetInsertPoint(bb);
+
     m_exe_ctx = exe_ctx;
-    ValueObjectSP result;
+    llvm::Value *result;
     for (const std::unique_ptr<KotlinASTStmt> &stmt : m_statements) {
         result = EvaluateStatement(stmt.get());
         if (m_error.Fail())
             return nullptr;
+        m_builder->CreateRet(result);
     }
+    if (m_log) {
+        std::string msg;
+        llvm::raw_string_ostream sstream(msg);
+        m_module->print(sstream, nullptr, false, true);
+        m_log->Printf("bitcode:\n %s", sstream.str().c_str());
+    }
+
     return result;
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::EvaluateStatement(
+llvm::Value* KotlinUserExpression::KotlinInterpreter::EvaluateStatement(
         const lldb_private::KotlinASTStmt *stmt) {
-    ValueObjectSP result;
+    llvm::Value *result;
     switch (stmt->GetKind()) {
         case KotlinASTNode::eBlockStmt: {
             const KotlinASTBlockStmt *block = llvm::cast<KotlinASTBlockStmt>(stmt);
@@ -368,19 +391,20 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::EvaluateStatement(
     return result;
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::EvaluateExpr(
+llvm::Value* KotlinUserExpression::KotlinInterpreter::EvaluateExpr(
         const lldb_private::KotlinASTExpr *e) {
     if (e)
-        return e->Visit<ValueObjectSP>(this);
-    return ValueObjectSP();
+        return e->Visit<llvm::Value*>(this);
+    return NotImplemented(e);
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitParenExpr(
+llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitParenExpr(
         const lldb_private::KotlinASTParenExpr *e) {
     return EvaluateExpr(e->GetX());
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinASTIdent *e) {
+llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinASTIdent *e) {
+#if 0
     ValueObjectSP val;
     const std::string &string_name = e->GetName().m_value.str();
     if (m_frame) {
@@ -482,18 +506,61 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinAS
         m_error.SetErrorStringWithFormat("Unknown variable %s",
                                          string_name.c_str());
     return val;
+#else
+    TargetSP target = m_frame->CalculateTarget();
+    if (!target) {
+        m_error.SetErrorString("No target");
+        return nullptr;
+    }
+    const std::string &string_name = e->GetName().m_value.str();
+    SymbolContextList sc_list;
+    std::string unescaped = unescape(string_name);
+    size_t size = target->GetImages().FindFunctions(ConstString(unescaped.c_str()), eFunctionNameTypeAuto, false, false, false, sc_list);
+    if (size > 0) {
+        auto function_type = sc_list[0].function->GetType();
+        if (m_log) {
+            lldb_private::StreamString sstream;
+            sstream.Printf("function type:");
+            function_type->Dump(&sstream, true);
+            sstream.EOL();
+            sstream.Printf("compiler type:");
+            const CompilerType &compiler_type = function_type->GetLayoutCompilerType();
+            compiler_type.DumpTypeDescription(&sstream);
+            bool variadic;
+            if (compiler_type.IsFunctionType(&variadic)) {
+                CompilerType return_type = compiler_type.GetFunctionReturnType();
+                sstream.Printf("return type:\n");
+                return_type.DumpTypeDescription(&sstream);
+                int argument_count = compiler_type.GetFunctionArgumentCount();
+                for (int i = 0; i != argument_count; ++i) {
+                    CompilerType argument_type = compiler_type.GetFunctionArgumentAtIndex(i);
+                    sstream.Printf("argument[%d] type: %s:\n");
+                    argument_type.DumpTypeDescription(&sstream);
+                }
+            }
+            m_log->Printf("%s", sstream.GetString().str().c_str());
+        }
+    }
+
+    return NotImplemented(e);
+#endif
 }
 
-ValueObjectSP
+llvm::Value*
 KotlinUserExpression::KotlinInterpreter::VisitStarExpr(const KotlinASTStarExpr *e) {
+#if 0
     ValueObjectSP target = EvaluateExpr(e->GetX());
     if (!target)
         return nullptr;
     return target->Dereference(m_error);
+#else
+    return NotImplemented(e);
+#endif
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitSelectorExpr(
+llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitSelectorExpr(
         const lldb_private::KotlinASTSelectorExpr *e) {
+#if 0
     ValueObjectSP target = EvaluateExpr(e->GetX());
     if (target) {
         if (target->GetCompilerType().IsPointerType()) {
@@ -534,9 +601,12 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitSelectorExpr(
     }
     // EvaluateExpr should have already set m_error.
     return target;
+#else
+    return NotImplemented(e);
+#endif
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitBasicLit(
+llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitBasicLit(
         const lldb_private::KotlinASTBasicLit *e) {
     std::string value = e->GetValue().m_value.str();
     CompilerType type;
@@ -547,9 +617,10 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitBasicLit(
     }
     switch (e->GetValue().m_type) {
         case KotlinLexer::LIT_INTEGER: {
+            int64_t intvalue = strtol(value.c_str(), nullptr, 0);
+#if 0
             type = LookupType(target, ConstString("kotlin.Long"));
             errno = 0;
-            int64_t intvalue = strtol(value.c_str(), nullptr, 0);
             if (errno != 0) {
                 m_error.SetErrorToErrno();
                 return nullptr;
@@ -560,8 +631,8 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitBasicLit(
             DataEncoder enc(buf, order, addr_size);
             enc.PutU64(0, static_cast<uint64_t>(intvalue));
             DataExtractor data(buf, order, addr_size);
-            return ValueObject::CreateValueObjectFromData(llvm::StringRef(), data,
-                                                  m_exe_ctx, type);
+#endif
+            return llvm::ConstantInt::get(llvm::IntegerType::get(m_ctx, 64), intvalue, true);
         }
         case KotlinLexer::LIT_STRING:
         default:
@@ -570,8 +641,9 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitBasicLit(
 
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIndexExpr(
+llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitIndexExpr(
         const lldb_private::KotlinASTIndexExpr *e) {
+#if 0
     ValueObjectSP target = EvaluateExpr(e->GetX());
     if (!target)
         return nullptr;
@@ -589,10 +661,14 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitIndexExpr(
     else
         idx = index->GetValueAsUnsigned(0);
     return target->GetChildAtIndex(idx, true);
+#else
+    NotImplemented(e);
+#endif
 }
 
-ValueObjectSP
+llvm::Value*
 KotlinUserExpression::KotlinInterpreter::VisitUnaryExpr(const KotlinASTUnaryExpr *e) {
+#if 0
     ValueObjectSP x = EvaluateExpr(e->GetX());
     if (!x)
         return nullptr;
@@ -611,20 +687,24 @@ KotlinUserExpression::KotlinInterpreter::VisitUnaryExpr(const KotlinASTUnaryExpr
                     KotlinLexer::LookupToken(e->GetOp()).str().c_str());
             return nullptr;
     }
+#else
+    return NotImplemented(e);
+#endif
 }
 
 CompilerType KotlinUserExpression::KotlinInterpreter::EvaluateType(const KotlinASTExpr *e) {
     TargetSP target = m_exe_ctx.GetTargetSP();
     if (auto *id = llvm::dyn_cast<KotlinASTIdent>(e)) {
-        CompilerType result =
-                LookupType(target, ConstString(unescape(id->GetName().m_value.str())));
-        if (result.IsValid())
-            return result;
-        std::string fullname = (m_package + "." + id->GetName().m_value).str();
-        result = LookupType(target, ConstString(fullname));
-        if (!result)
-            m_error.SetErrorStringWithFormat("Unknown type %s", fullname.c_str());
-        return result;
+        //CompilerType result =
+        //        LookupType(target, ConstString(unescape(id->GetName().m_value.str())));
+        //if (result.IsValid())
+        //    return result;
+        //std::string fullname = (m_package + "." + id->GetName().m_value).str();
+        //result = LookupType(target, ConstString(fullname));
+        //if (!result)
+        //    m_error.SetErrorStringWithFormat("Unknown type %s", fullname.c_str());
+        //return result;
+        return LookupType(target, ConstString("kotlin.Int"));
     }
     if (auto *sel = llvm::dyn_cast<KotlinASTSelectorExpr>(e)) {
         std::string package;
@@ -663,8 +743,9 @@ CompilerType KotlinUserExpression::KotlinInterpreter::EvaluateType(const KotlinA
     return CompilerType();
 }
 
-ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitCallExpr(
+llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitCallExpr(
         const lldb_private::KotlinASTCallExpr *e) {
+#if 0
     ValueObjectSP x = EvaluateExpr(e->GetFun());
     /* if (x || e->NumArgs() != 1) {
         m_error.SetErrorStringWithFormat("Code execution not supported");
@@ -675,11 +756,20 @@ ValueObjectSP KotlinUserExpression::KotlinInterpreter::VisitCallExpr(
     if (!type) {
         return nullptr;
     }
-    ValueObjectSP value = EvaluateExpr(e->GetArgs(0));
+    ValueObjectSP value = EvaluateExpr(e);
     if (!value)
         return nullptr;
     // TODO: Handle special conversions
     return value->Cast(type);
+#endif
+    EvaluateExpr(e->GetFun());
+    size_t argument_number = e->NumArgs();
+    std::vector<llvm::Value*>args(argument_number);
+    for (int i = 0; i != argument_number; ++i) {
+        args[i] = EvaluateExpr(e->GetArgs(i));
+    }
+    //return m_builder->CreateCall(e->GetFunction(), args);
+    return NotImplemented(e);
 }
 
 KotlinPersistentExpressionState::KotlinPersistentExpressionState()

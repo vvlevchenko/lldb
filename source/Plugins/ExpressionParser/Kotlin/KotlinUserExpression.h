@@ -92,6 +92,7 @@ private:
 
     class KotlinInterpreter;
     std::unique_ptr<KotlinInterpreter> m_interpreter;
+    Log *m_log;
 };
 
 } // namespace lldb_private

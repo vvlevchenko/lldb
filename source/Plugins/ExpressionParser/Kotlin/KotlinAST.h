@@ -16,6 +16,7 @@
 #include "lldb/lldb-forward.h"
 #include "lldb/lldb-private.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/IR/Function.h"
 #include "Plugins/ExpressionParser/Kotlin/KotlinLexer.h"
 
 namespace lldb_private
@@ -654,7 +655,15 @@ class KotlinASTCallExpr : public KotlinASTExpr
         m_ellipsis = ellipsis;
     }
 
+    void SetFunction(llvm::Function *function) {
+        m_function = function;
+    }
+
+    llvm::Function *GetFunction() const {
+        return m_function;
+    }
   private:
+    llvm::Function *m_function;
     friend class KotlinASTNode;
     std::unique_ptr<KotlinASTExpr> m_fun_up;
     std::vector<std::unique_ptr<KotlinASTExpr> > m_args;

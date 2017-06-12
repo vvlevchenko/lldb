@@ -332,9 +332,10 @@ class KotlinFunctionType: public KotlinDynamicType {
 public:
     KotlinFunctionType(const CompilerType& return_type):KotlinDynamicType(eKindFuntionType, ConstString()),
                              m_return_type(return_type){}
-    void AddParameter(const CompilerType& type) { m_paramters.push_back(type);}
-    CompilerType GetParameter(unsigned index) const {return m_paramters[index];}
+    void AddParameter(const CompilerType& type) { m_parameters.push_back(type);}
+    CompilerType GetParameter(unsigned index) const {return m_parameters[index];}
     CompilerType GetReturnType() const { return m_return_type; }
+    size_t GetParameterCount() const { return m_parameters.size();}
     void Dump(Stream *s) override {}
     ConstString GetName() override { return ConstString();}
     bool IsCompleteType() override { return true; }
@@ -344,7 +345,7 @@ public:
     }
 private:
     CompilerType m_return_type;
-    std::vector<CompilerType> m_paramters;
+    std::vector<CompilerType> m_parameters;
 };
 } // end of anonymous namespace
 
@@ -485,12 +486,12 @@ bool KotlinASTContext::IsFunctionType(lldb::opaque_compiler_type_t type,
                                     bool *is_variadic_ptr) {
     if (is_variadic_ptr)
         *is_variadic_ptr = false;
-    return false;
+    return llvm::isa<KotlinFunctionType>(static_cast<KotlinType *>(type));
 }
 
 size_t KotlinASTContext::GetNumberOfFunctionArguments(
         lldb::opaque_compiler_type_t type) {
-    return 0;
+    return llvm::dyn_cast<KotlinFunctionType>(static_cast<KotlinType *>(type))->GetParameterCount();
 }
 
 CompilerType
