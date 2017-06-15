@@ -529,7 +529,7 @@ llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinAST
             bool variadic;
             if (compiler_type.IsFunctionType(&variadic)) {
                 CompilerType return_type = compiler_type.GetFunctionReturnType();
-                sstream.Printf("return type:\n");
+                sstream.Printf("\nreturn type:");
                 return_type.DumpTypeDescription(&sstream);
                 int argument_count = compiler_type.GetFunctionArgumentCount();
                 for (int i = 0; i != argument_count; ++i) {
