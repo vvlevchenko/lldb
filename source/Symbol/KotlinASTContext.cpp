@@ -338,7 +338,7 @@ public:
     size_t GetParameterCount() const { return m_parameters.size();}
     void Dump(Stream *s) override {}
     ConstString GetName() override { return ConstString();}
-    bool IsCompleteType() override { return true; }
+    bool IsCompleteType() override { return m_return_type.IsCompleteType() && std::all_of(m_parameters.begin(), m_parameters.end(), [](const CompilerType& t){ return t.IsCompleteType();}); }
 
     static bool classof(const KotlinASTContext::KotlinType *jt) {
         return jt->getKind() == KotlinASTContext::KotlinType::eKindFuntionType;
