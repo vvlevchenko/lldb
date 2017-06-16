@@ -590,10 +590,11 @@ lldb::TypeSP DWARFASTParserKotlin::ParseSubprogramTypeFromDIE(const DWARFDIE &di
 
     bool is_variadic = false;
     assert(!die.HasChildren());
+    DIERef type_die_ref(type_die_form);
     CompilerType compiler_type = m_ast.CreateFunctionType(return_type, (CompilerType *)NULL, 0, is_variadic);
     return TypeSP(new Type(die.GetID(), dwarf, name,
                             0,
-                            nullptr, LLDB_INVALID_UID, Type::eEncodingIsUID,
+                            nullptr, type_die_ref.GetUID(dwarf), Type::eEncodingIsUID,
                             &decl, compiler_type, Type::eResolveStateForward));
 }
 

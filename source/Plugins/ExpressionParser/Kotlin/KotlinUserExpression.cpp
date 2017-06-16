@@ -65,6 +65,14 @@ static std::string unescape(const std::string &string_name) {
     return unescaped;
 }
 
+static llvm::Type *getLlvmType(const char *type_name, llvm::Module *module) {
+    auto llvm_type = module->getTypeByName(type_name);
+    if (!llvm_type) {
+        llvm_type = llvm::StructType::create(module->getContext(), type_name);
+    }
+    return llvm_type;
+}
+
 class KotlinUserExpression::KotlinInterpreter {
 public:
     KotlinInterpreter(ExecutionContext &exe_ctx, const char *expr, Log *log)
@@ -518,27 +526,36 @@ llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitIdent(const KotlinAST
     size_t size = target->GetImages().FindFunctions(ConstString(unescaped.c_str()), eFunctionNameTypeAuto, false, false, false, sc_list);
     if (size > 0) {
         auto function_type = sc_list[0].function->GetType();
-        if (m_log) {
-            lldb_private::StreamString sstream;
-            sstream.Printf("function type:");
-            function_type->Dump(&sstream, true);
-            sstream.EOL();
-            sstream.Printf("compiler type:");
-            const CompilerType &compiler_type = function_type->GetLayoutCompilerType();
-            compiler_type.DumpTypeDescription(&sstream);
-            bool variadic;
-            if (compiler_type.IsFunctionType(&variadic)) {
-                CompilerType return_type = compiler_type.GetFunctionReturnType();
-                sstream.Printf("\nreturn type:");
-                return_type.DumpTypeDescription(&sstream);
-                int argument_count = compiler_type.GetFunctionArgumentCount();
-                for (int i = 0; i != argument_count; ++i) {
-                    CompilerType argument_type = compiler_type.GetFunctionArgumentAtIndex(i);
-                    sstream.Printf("argument[%d] type: %s:\n");
-                    argument_type.DumpTypeDescription(&sstream);
-                }
+        bool variadic;
+        const CompilerType &compiler_type = function_type->GetLayoutCompilerType();
+        CompilerType return_type = compiler_type.GetFunctionReturnType();
+        int argument_count = compiler_type.GetFunctionArgumentCount();
+        if (compiler_type.IsFunctionType(&variadic)) {
+            if (m_log) {
+                lldb_private::StreamString sstream;
+                sstream.Printf("function type:");
+                function_type->Dump(&sstream, true);
+                sstream.EOL();
+                sstream.Printf("compiler type:");
+                compiler_type.DumpTypeDescription(&sstream);
+                    sstream.Printf("\nreturn type:");
+                    return_type.DumpTypeDescription(&sstream);
+                    for (int i = 0; i != argument_count; ++i) {
+                        CompilerType argument_type = compiler_type.GetFunctionArgumentAtIndex(i);
+                        sstream.Printf("argument[%d] type: %s:\n");
+                        argument_type.DumpTypeDescription(&sstream);
+                    }
+                m_log->Printf("%s", sstream.GetString().str().c_str());
             }
-            m_log->Printf("%s", sstream.GetString().str().c_str());
+            const char *return_type_name = return_type.GetConstTypeName().AsCString();
+            llvm::Type *llvm_return_type = getLlvmType(return_type_name, m_module.get());
+            std::vector<llvm::Type*> arguments;
+            for (int i = 0; i != argument_count; ++i) {
+                CompilerType argument_type = compiler_type.GetFunctionArgumentAtIndex(i);
+                arguments.push_back(getLlvmType(argument_type.GetConstTypeName().AsCString(), m_module.get()));
+            }
+            llvm::FunctionType *llvm_function_type = llvm::FunctionType::get(llvm_return_type, arguments, false);
+            return m_module->getOrInsertFunction(unescaped, llvm_function_type);
         }
     }
 
@@ -762,14 +779,14 @@ llvm::Value* KotlinUserExpression::KotlinInterpreter::VisitCallExpr(
     // TODO: Handle special conversions
     return value->Cast(type);
 #endif
-    EvaluateExpr(e->GetFun());
+    auto f = EvaluateExpr(e->GetFun());
     size_t argument_number = e->NumArgs();
     std::vector<llvm::Value*>args(argument_number);
     for (int i = 0; i != argument_number; ++i) {
         args[i] = EvaluateExpr(e->GetArgs(i));
     }
-    //return m_builder->CreateCall(e->GetFunction(), args);
-    return NotImplemented(e);
+    return m_builder->CreateCall(f, args);
+    //return NotImplemented(e);
 }
 
 KotlinPersistentExpressionState::KotlinPersistentExpressionState()

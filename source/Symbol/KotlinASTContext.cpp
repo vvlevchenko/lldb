@@ -333,9 +333,9 @@ public:
     KotlinFunctionType(const CompilerType& return_type):KotlinDynamicType(eKindFuntionType, ConstString()),
                              m_return_type(return_type){}
     void AddParameter(const CompilerType& type) { m_parameters.push_back(type);}
-    CompilerType GetParameter(unsigned index) const {return m_parameters[index];}
+    CompilerType GetArgumentType(size_t index) const {return m_parameters[index];}
     CompilerType GetReturnType() const { return m_return_type; }
-    size_t GetParameterCount() const { return m_parameters.size();}
+    size_t GetArgumentCount() const { return m_parameters.size();}
     void Dump(Stream *s) override {}
     ConstString GetName() override { return ConstString();}
     bool IsCompleteType() override { return m_return_type.IsCompleteType() && std::all_of(m_parameters.begin(), m_parameters.end(), [](const CompilerType& t){ return t.IsCompleteType();}); }
@@ -491,13 +491,13 @@ bool KotlinASTContext::IsFunctionType(lldb::opaque_compiler_type_t type,
 
 size_t KotlinASTContext::GetNumberOfFunctionArguments(
         lldb::opaque_compiler_type_t type) {
-    return llvm::dyn_cast<KotlinFunctionType>(static_cast<KotlinType *>(type))->GetParameterCount();
+    return llvm::dyn_cast<KotlinFunctionType>(static_cast<KotlinType *>(type))->GetArgumentCount();
 }
 
 CompilerType
 KotlinASTContext::GetFunctionArgumentAtIndex(lldb::opaque_compiler_type_t type,
                                            const size_t index) {
-    return CompilerType();
+    return llvm::dyn_cast<KotlinFunctionType>(static_cast<KotlinType *>(type))->GetArgumentType(index);
 }
 
 bool KotlinASTContext::IsFunctionPointerType(lldb::opaque_compiler_type_t type) {
@@ -1047,7 +1047,7 @@ void KotlinASTContext::DumpSummary(lldb::opaque_compiler_type_t type,
 
 int KotlinASTContext::GetFunctionArgumentCount(
         lldb::opaque_compiler_type_t type) {
-    return 0;
+    return llvm::dyn_cast<KotlinFunctionType>(static_cast<KotlinType *>(type))->GetArgumentCount();
 }
 
 CompilerType KotlinASTContext::GetFunctionArgumentTypeAtIndex(
@@ -1057,7 +1057,7 @@ CompilerType KotlinASTContext::GetFunctionArgumentTypeAtIndex(
 
 CompilerType
 KotlinASTContext::GetFunctionReturnType(lldb::opaque_compiler_type_t type) {
-    return CompilerType();
+    return llvm::dyn_cast<KotlinFunctionType>(static_cast<KotlinType*>(type))->GetReturnType();
 }
 
 size_t
