@@ -121,6 +121,8 @@ ClangASTContextSupportsLanguage(lldb::LanguageType language) {
          // Use Clang for Rust until there is a proper language plugin for it
          language == eLanguageTypeRust ||
          language == eLanguageTypeExtRenderScript ||
+          // Use Clang for Kotlin until there is a proper language plugin for it
+         language == eLanguageTypeKotlin ||
          // Use Clang for D until there is a proper language plugin for it
          language == eLanguageTypeD;
 }

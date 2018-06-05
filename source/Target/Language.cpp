@@ -200,6 +200,7 @@ struct language_name_pair language_names[] = {
     // Vendor Extensions
     {"mipsassem", eLanguageTypeMipsAssembler},
     {"renderscript", eLanguageTypeExtRenderScript},
+    {"kotlin", eLanguageTypeKotlin},
     // Now synonyms, in arbitrary order
     {"objc", eLanguageTypeObjC},
     {"objc++", eLanguageTypeObjC_plus_plus},
